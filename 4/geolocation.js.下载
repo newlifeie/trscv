@@ -1,0 +1,213 @@
+jQuery(document).ready(function($){
+	
+	// get/set My Store cookies
+	function myStoreSetCookie( name, value ,days ) {
+		var expires = "";
+		if (days) {
+			var date = new Date();
+			date.setTime(date.getTime() + (days*24*60*60*1000));
+			expires = "; expires=" + date.toUTCString();
+		}
+		document.cookie = name + "=" + (value || "")  + expires + "; path=/"; // domain=.example.com";
+	}
+	
+	function myStoreGetCookie( name ) {
+		var nameEQ = name + "=";
+		var ca = document.cookie.split(';');
+		for(var i=0;i < ca.length;i++) {
+			var c = ca[i];
+			while (c.charAt(0)==' ') c = c.substring(1,c.length);
+			if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+		}
+		return null;
+	}
+	
+	function myStoreEraseCookie( name ) {   
+		document.cookie = name +'=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+	}
+	
+	// get user's geolocation
+	async function getGeoLocation(){
+		return new Promise((resolve, reject) => {
+			if ("geolocation" in navigator) {
+				// check if geolocation is supported/enabled on current browser
+				navigator.geolocation.getCurrentPosition(
+					function success(position) {
+						// for when getting location is a success
+						//console.log('latitude', position.coords.latitude, 'longitude', position.coords.longitude);
+						
+						var myLocation = {
+							"lat": position.coords.latitude,
+							"lon": position.coords.longitude
+						};
+						resolve( JSON.stringify(myLocation) );
+					},
+					function error(error_message) {
+						// for when getting location results in an error
+						reject( 'An error has occured while retrieving location : ' + error_message );
+					});
+			} else {
+				// geolocation is not supported
+				reject( 'geolocation is not enabled on this browser' );
+			}
+		});
+	}
+	
+	/* get user location on click
+	$('.use-current-location a').click(function(e){
+		e.preventDefault();
+		getGeoLocation();
+	});
+	*/
+	
+	// store storeId in cookie
+	$('.make-this-my-store').click(function(e){
+		e.preventDefault();
+		if( $(this).data('id') !== undefined ){
+			myStoreSetCookie('vsm_my_store', $(this).data('id'), 30);
+			window.location = $(this).data('url');
+		}
+	});
+	
+	// ajax call for use current location in helpers
+	$('.use-current-location a').click(function(e){
+		e.preventDefault(); 
+		
+		let nonce = $(this).data('nonce');
+		//console.log( nonce );
+		
+		
+		$(this).find('img').addClass('is-hidden');
+		$(this).find('.fas').removeClass('is-hidden');
+		
+		getGeoLocation()
+			.then( result => getUserZip(nonce, result) )
+			.catch( err => console.log(err) );
+	});
+	
+	function getUserZip( nonce, coords ){
+		$.ajax({
+			type : "post",
+			dataType : "json",
+			url : useCurrentLocation.ajaxurl,
+			data : {action: "mb_use_current_location", nonce: nonce, geoLocation: coords},
+			success: function(response) {
+				if(response.type == 'success') {
+					//console.log(response);
+					if( response.zip ){
+						$('input[name="zip_or_city"]').val(response.zip);
+					} else {
+						alert('Location could not be found.');
+					}
+					
+					$('.use-current-location a').find('img').removeClass('is-hidden');
+					$('.use-current-location a').find('.fas').addClass('is-hidden');
+					
+				} else {
+					alert('There was an error finding your store');
+					
+					$('.use-current-location a').find('img').removeClass('is-hidden');
+					$('.use-current-location a').find('.fas').addClass('is-hidden');
+				}
+			}
+		});
+	}
+	
+	/**
+	 * search by city or zip search form
+	 */
+	$('.zip-or-city-search-form').submit(function(e){
+		e.preventDefault();
+		
+		let nonce = $('.zip-or-city-search-form').data('nonce');
+		let zip_or_city = $('.zip-or-city-search-form input[name="zip_or_city"]').val();
+		//console.log( nonce );
+		
+		$('.zip-or-city-search-form button .far').removeClass('fa-search');
+		$('.zip-or-city-search-form button .far').addClass('fa-sync fa-spin');
+		
+		searchByZipOrCity( nonce, zip_or_city, zip_or_city);
+	});
+	
+	async function searchByZipOrCity( nonce, zip_or_city, search_term ){
+		$.ajax({
+			type : "post",
+			dataType : "json",
+			url : useCurrentLocation.ajaxurl,
+			data : {action: "mb_search_by_location", nonce: nonce, zip_or_city: zip_or_city},
+			success: function(response) {
+				if(response.type == 'success') {
+					console.log(response);
+					if( response.zips ){
+						// filter the listing. Returned is array of [zip] => [distance or city name]
+						filterLocationsByZips( response.zips, search_term );
+					} else {
+						alert('Location could not be found.');
+					}
+					
+					$('.zip-or-city-search-form button .far').removeClass('fa-sync fa-spin');
+					$('.zip-or-city-search-form button .far').addClass('fa-search');
+					
+				} else {
+					alert('There was an error finding your store');
+					
+					$('.zip-or-city-search-form button .far').removeClass('fa-sync fa-spin');
+					$('.zip-or-city-search-form button .far').addClass('fa-search');
+				}
+			}
+		});
+	}
+	
+	function filterLocationsByZips( zips, search_term ){
+		$('#more-locations-header').text( 'Results near ' + search_term );
+		$('.store-listing.all-stores .item').hide();
+		$('.my-store-container').hide();
+		
+		$.each( zips, function( zip, value ){
+			$('.store-listing.all-stores .item[data-zip="' + zip + '"]').show();
+			showMessageIfNoResults();
+		});
+	}
+	
+	
+	/**
+	 * store locations county map
+	 */
+	
+	// store locations map SVG with id=[location slug]
+	$.each( $('.store-map svg .cls-2'), function() {
+		if( $(this).attr('id') !== undefined ){
+			$(this).addClass('active');
+		}
+	});
+	
+	$('.store-map svg .cls-2.active').on('click', function(){
+		var selected_county = $('.store-map svg .cls-2.active.selected').attr('id');
+		var county = $(this).attr('id');
+		$('.store-map svg .cls-2.active').removeClass('selected');
+		
+		// show/hide .store-listing.all-stores .item w/ data-county matching county
+		if( selected_county == county ){
+			$('.store-listing.all-stores .item').show();
+			$('#more-locations-header').text('More Locations');
+			$('.my-store-container').show();
+		} else {
+			$(this).addClass('selected');
+			$('.my-store-container').hide();
+			$('#more-locations-header').text( county.replace('-', ' ') );
+			$('.store-listing.all-stores .item').hide();
+			$('.store-listing.all-stores .item[data-county="' + county + '"]').show();
+			showMessageIfNoResults();
+		}
+	});
+	
+	
+	function showMessageIfNoResults(){
+		if( !$('.store-listing.all-stores .item:visible').length ){
+			$('.store-listing.all-stores .no-results').removeClass('is-hidden');
+		} else if( !$('.store-listing.all-stores .no-results').hasClass('is-hidden') ){
+			$('.store-listing.all-stores .no-results').addClass('is-hidden');
+		}
+	}
+	
+});

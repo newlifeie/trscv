@@ -1,0 +1,221 @@
+jQuery(document).ready(function($){
+
+	$('header.primary .hamburger').click(function(){
+		$('.mega-menu').fadeToggle(100);
+	});
+	
+	$('.linked').click(function(){
+		if( $(this).data('url') ){
+			window.location = $(this).data('url');
+		}
+	});
+	
+	$('.back-to-top').hide();
+	$(window).scroll(function(){
+	    if( $(document).scrollTop() > 200 ){
+		    $('.back-to-top').fadeIn();
+	    } else {
+		    $('.back-to-top').fadeOut();
+	    }
+	    
+	    if( $(document).scrollTop() > 100 ){
+		    $('header.primary').addClass('scroll');
+	    } else {
+		    $('header.primary').removeClass('scroll');
+	    }
+	});
+	
+	$('.back-to-top a').click(function(e){
+		e.preventDefault();
+		$('body,html').animate({
+	        scrollTop: 0
+	    }, 1000);
+	});
+	
+	// custom select onchange
+	$('.custom-select .select-items div').on('click', function(){
+		var option = $.trim($(this).text());
+		
+		$('.custom-select select option').each(function(i){
+			if( $.trim($(this).text()) == option ){
+				window.location = $.trim($(this).val());
+			}
+		});
+	});
+	
+	// store detail tabs
+	$('.tabs .tab').click(function(e){
+		e.preventDefault();
+		var group = $(this).parent().parent().data('group');
+		var name = $(this).data('name');
+		
+		console.log( group );
+		console.log( name );
+		
+		// select the tab
+		$(this).parent().parent().find('.tab').removeClass('selected');
+		$(this).addClass('selected');
+		
+		// hide tabs in group
+		$('.tab-content[data-group="' + group + '"]').addClass('is-hidden');
+		
+		// show selected tab-contents
+		$('.tab-content[data-group="' + group + '"]').each(function(i){
+			if( $(this).data('name') == name ){
+				$(this).removeClass('is-hidden');
+				
+				if( $(this).data('name') == 'weekly-specials' ){
+					if ($.isFunction(window.enableFlippContainer)) {
+						enableFlippContainer();
+					}
+				}
+			}
+		});
+		
+	});
+	
+	// on page load, if hash #weekly-specials exists, select tab
+	if(window.location.hash) {
+		var hash = window.location.hash.substring(1);
+		if( hash == 'weekly-specials' && $('.tabs[data-group="store"] .tab').length ){
+			
+			$('.tabs[data-group="store"] .tab').removeClass('selected');
+			$('.tabs[data-group="store"] .tab[data-name="weekly-specials"]').addClass('selected');
+			$('.tab-content[data-group="store"]').addClass('is-hidden');
+			
+			// show weekly specials tab and initiate flip container
+			$('.tab-content[data-group="store"]').each(function(i){
+				console.log( $(this).data('name') );
+				if( $(this).data('name') == 'weekly-specials' ){
+					$(this).removeClass('is-hidden');
+					
+					if ($.isFunction(window.enableFlippContainer)) {
+						enableFlippContainer();
+					}
+				}
+			});
+		}	
+	}
+	
+	// careers filter
+	$('.careers-listing .filter select').on('change', function() {
+		window.location = this.value;
+	});
+	
+	
+	/**
+     * configuration for each Slick Slider
+	 */
+	
+	$('.hero.slideshow').slick({
+		dots: false,
+		arrows: true,
+		infinite: true,
+		speed: 300,
+		slidesToShow: 1,
+		slidesToScroll: 1,
+		autoplay: true,
+		autoplaySpeed: 8000,
+		responsive: [
+			{
+				breakpoint: 600,
+				settings: {
+					arrows: false,
+					dots: true
+				}
+			}
+		]
+	});
+	
+	$('.departments-slider .slides').slick({
+		dots: false,
+		arrows: true,
+		infinite: true,
+		speed: 300,
+		slidesToShow: 4,
+		slidesToScroll: 4,
+		responsive: [
+			{
+				breakpoint: 1220,
+				settings: {
+					slidesToShow: 3,
+					slidesToScroll: 3,
+				}
+			},
+			{
+				breakpoint: 600,
+				settings: {
+					slidesToShow: 1,
+					slidesToScroll: 1,
+					centerMode: true,
+					arrows: false,
+					dots: true
+				}
+			}
+		]
+	});
+	
+	$('.department-feature-slider').slick({
+		dots: true,
+		arrows: false,
+		infinite: true,
+		speed: 300,
+		slidesToShow: 1,
+		slidesToScroll: 1,
+		autoplay: true,
+		autoplaySpeed: 4000
+	});
+	
+	$('.image-slider').slick({
+		dots: true,
+		arrows: false,
+		infinite: true,
+		speed: 300,
+		slidesToShow: 1,
+		slidesToScroll: 1,
+		autoplay: true,
+		autoplaySpeed: 4000
+	});
+	
+	$('.instagram .slides').slick({
+		dots: false,
+		arrows: true,
+		infinite: true,
+		speed: 300,
+		slidesToShow: 7,
+		slidesToScroll: 7,
+		centerMode: false,
+		responsive: [
+			{
+				breakpoint: 1600,
+				settings: {
+					slidesToShow: 6,
+					slidesToScroll: 6
+				}
+			},
+			{
+				breakpoint: 1500,
+				settings: {
+					slidesToShow: 5,
+					slidesToScroll: 5
+				}
+			},
+			{
+				breakpoint: 1300,
+				settings: {
+					slidesToShow: 4,
+					slidesToScroll: 4
+				}
+			},
+			{
+				breakpoint: 600,
+				settings: {
+					slidesToShow: 1,
+					slidesToScroll: 1,
+					centerMode: true
+				}
+			},
+		]
+	});
+
+});
